@@ -1,0 +1,3 @@
+post-build=nubia/NX510J/NX510J:5.1.1/LMY47V/eng.nubia.20160120.181358:user/release-keys
+post-timestamp=1453285005
+pre-device=NX510J
