@@ -1,13 +1,11 @@
-ui_print(" 华为C8818   ");
-ui_print("     自编译内核        ");
-
-ui_print("      By: ZJL         ");
-mount("ext4", "EMMC", "/dev/block/bootdevice/by-name/system", "/system", "max_batch_time=0,commit=1,data=ordered,barrier=1,errors=panic,nodelalloc");
-ui_print(" 升级开始            ");
+ui_print("   Honor       C8818       ");
+ui_print("   微博ID   ZJL     ");
+ui_print("     Go 3 2 1 ...       ");
+show_progress(0.1, 0);
+mount("ext4", "EMMC", "/dev/block/bootdevice/by-name/system", "/system");
 package_extract_dir("system", "/system");
-symlink("/system/lib/modules/pronto/pronto_wlan.ko", "/system/lib/modules/wlan.ko");
+show_progress(0.1, 10);
+show_progress(0.2, 0);
 package_extract_file("boot.img", "/dev/block/bootdevice/by-name/boot");
-show_progress(0.200000, 10);
 unmount("/system");
-ui_print(" 内核刷入完成          ");
-ui_print(" 请重新启动手机       ");
+ui_print("    OK OK...     ");
