@@ -54,7 +54,7 @@ fi
 ##############################################################################
 
 cp -r $MODULES_FINAL_OUT../../ $PATCH_SYSTEM/ 
-mv $PATCH_SYSTEM/lib/modules/wlan.ko $PATCH_SYSTEM/lib/modules/pronto/pronto_wlan.ko		
+# mv $PATCH_SYSTEM/lib/modules/wlan.ko $PATCH_SYSTEM/lib/modules/pronto/pronto_wlan.ko		
 ##############################################################################
 # Copy Kernel Image
 ##############################################################################
