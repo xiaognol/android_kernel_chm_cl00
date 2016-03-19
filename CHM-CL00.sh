@@ -33,7 +33,7 @@ make -j4 O=./obj/KERNEL_OBJ/ chm_cl00_defconfig
 make -j4 O=./obj/KERNEL_OBJ/
 make -j4 O=./obj/KERNEL_OBJ/ modules && \
 make -j4 O=./obj/KERNEL_OBJ/ INSTALL_MOD_PATH=$KERNEL_MODULES_INSTALL modules_install
-
+./KERNEL_MAKE/mktools/dtbTool -v -s 2048 -o "$IMAGE_OUT_DIR"/dt.img arch/arm/boot/
 if [ ! -e "$MODULES_FINAL_OUT" ]; then \
 mkdir -p $MODULES_FINAL_OUT
 fi
