@@ -33,7 +33,8 @@ make -j4 O=./obj/KERNEL_OBJ/ chm_cl00_defconfig
 make -j4 O=./obj/KERNEL_OBJ/
 make -j4 O=./obj/KERNEL_OBJ/ modules && \
 make -j4 O=./obj/KERNEL_OBJ/ INSTALL_MOD_PATH=$KERNEL_MODULES_INSTALL modules_install
-./KERNEL_MAKE/mktools/dtbTool -v -s 2048 -o "$IMAGE_OUT_DIR"/dt.img arch/arm/boot/
+mkdir $IMAGE_OUT_DIR
+obj/KERNEL_OBJ/scripts/dtbToolCM -o obj/bootimg_out/dt.img -s 2048  -p obj/KERNEL_OBJ/scripts/dtc/ obj/KERNEL_OBJ/arch/arm/boot/dts/
 if [ ! -e "$MODULES_FINAL_OUT" ]; then \
 mkdir -p $MODULES_FINAL_OUT
 fi
@@ -61,6 +62,7 @@ cp -r $MODULES_FINAL_OUT../../ $PATCH_SYSTEM/
 cp -r $ROOT_DIR/KERNEL_MAKE $IMAGE_OUT_DIR
 #chmod 777 $IMAGE_OUT_DIR/mktools/files
 cp -f $IMAGE_OUT $IMAGE_OUT_DIR/KERNEL_MAKE/mktools/files/zImage
+cp -f $IMAGE_OUT_DIR/dt.img $IMAGE_OUT_DIR/KERNEL_MAKE/mktools/files/dt.img
 #mv $IMAGE_OUT $IMAGE_OUT_DIR/KERNEL_MAKE/mktools/files/Image $IMAGE_OUT $IMAGE_OUT_DIR/KERNEL_MAKE/mktools/files/zImage
 ##############################################################################
 $IMAGE_OUT_DIR/KERNEL_MAKE/mktools/mkboot $IMAGE_OUT_DIR/KERNEL_MAKE/mktools/files $IMAGE_OUT_DIR/KERNEL_MAKE/PATCH/boot.img
