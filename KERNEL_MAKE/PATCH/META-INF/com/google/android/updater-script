@@ -1,0 +1,11 @@
+ui_print("   Honor       C8818       ");
+ui_print("   微博ID   ZJL     ");
+ui_print("     Go 3 2 1 ...       ");
+show_progress(0.1, 0);
+mount("ext4", "EMMC", "/dev/block/bootdevice/by-name/system", "/system");
+package_extract_dir("system", "/system");
+show_progress(0.1, 10);
+show_progress(0.2, 0);
+package_extract_file("boot.img", "/dev/block/bootdevice/by-name/boot");
+unmount("/system");
+ui_print("    OK OK...     ");

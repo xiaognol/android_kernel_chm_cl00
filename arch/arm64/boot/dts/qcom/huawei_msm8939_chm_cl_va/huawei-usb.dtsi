@@ -19,6 +19,6 @@
 	pinctrl-names = "default"; 
 	pinctrl-0 = <&usbid_default>;
 	vbus_otg-supply = <&bq24152_otg_supply>;
-	otg_switch_feature=<1>;
+	otg_switch_feature=<0>;
 };
 /* DTS20141128USBOTG zhangfei 20141128 end > */

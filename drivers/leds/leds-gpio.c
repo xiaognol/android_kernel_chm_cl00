@@ -4,6 +4,7 @@
  * Copyright (C) 2007 8D Technologies inc.
  * Raphael Assenat <raph@8d.com>
  * Copyright (C) 2008 Freescale Semiconductor, Inc.
+ * Copyright (C) 2016 The CyanogenMod Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,28 +24,11 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/err.h>
 
-int led_debug_mask = 1;
-module_param_named(led_debug, led_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
-#define LED_ERR(x...) do {\
-    if (led_debug_mask >=0) \
-        printk(KERN_ERR x);\
-    } while (0)
-#define LED_WARN(x...) do {\
-    if (led_debug_mask >=0) \
-        printk(KERN_ERR x);\
-    } while (0)
-#define LED_INFO(x...) do {\
-    if (led_debug_mask >=1) \
-        printk(KERN_ERR x);\
-    } while (0)
-#define LED_DEBUG(x...) do {\
-    if (led_debug_mask >=2) \
-        printk(KERN_ERR x);\
-    } while (0)
-
 struct gpio_led_data {
 	struct led_classdev cdev;
 	unsigned gpio;
+	unsigned long onMS;
+	unsigned long offMS;
 	struct work_struct work;
 	u8 new_level;
 	u8 can_sleep;
@@ -95,10 +79,8 @@ static void gpio_led_set(struct led_classdev *led_cdev,
 			led_dat->platform_gpio_blink_set(led_dat->gpio, level,
 							 NULL, NULL);
 			led_dat->blinking = 0;
-		} else{
-		        LED_INFO("%s:leds tricolor set %s (%d)\n",__func__,led_dat->cdev.name, level);
+		} else
 			gpio_set_value(led_dat->gpio, level);
-		}
 	}
 }
 
@@ -113,6 +95,98 @@ static int gpio_blink_set(struct led_classdev *led_cdev,
 						delay_on, delay_off);
 }
 
+static ssize_t gpio_led_show_onMS(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct gpio_led_data *led =
+			container_of(led_cdev, struct gpio_led_data, cdev);
+
+	return snprintf(buf, PAGE_SIZE, "%ld\n", led->onMS);
+}
+
+static ssize_t gpio_led_store_onMS(struct device *dev,
+			     struct device_attribute *attr,
+			     const char *buf, size_t len)
+{
+	unsigned long onMS;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct gpio_led_data *led =
+			container_of(led_cdev, struct gpio_led_data, cdev);
+	ssize_t ret = -EINVAL;
+
+	ret = kstrtoul(buf, 10, &onMS);
+	if (ret)
+		return ret;
+	led->onMS = onMS;
+
+	return len;
+}
+DEVICE_ATTR(onMS, 0664, gpio_led_show_onMS, gpio_led_store_onMS);
+
+static ssize_t gpio_led_show_offMS(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct gpio_led_data *led =
+			container_of(led_cdev, struct gpio_led_data, cdev);
+
+	return snprintf(buf, PAGE_SIZE, "%ld\n", led->offMS);
+}
+
+static ssize_t gpio_led_store_offMS(struct device *dev,
+			     struct device_attribute *attr,
+			     const char *buf, size_t len)
+{
+	unsigned long offMS;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct gpio_led_data *led =
+			container_of(led_cdev, struct gpio_led_data, cdev);
+	ssize_t ret = -EINVAL;
+
+	ret = kstrtoul(buf, 10, &offMS);
+	if (ret)
+		return ret;
+	led->offMS = offMS;
+
+	return len;
+}
+DEVICE_ATTR(offMS, 0664, gpio_led_show_offMS, gpio_led_store_offMS);
+
+extern void led_stop_software_blink(struct led_classdev *led_cdev);
+static ssize_t gpio_led_blink_store(struct device *dev,
+			     struct device_attribute *attr,
+			     const char *buf, size_t len)
+{
+	unsigned long blinking;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct gpio_led_data *led =
+			container_of(led_cdev, struct gpio_led_data, cdev);
+	ssize_t ret = -EINVAL;
+
+	ret = kstrtoul(buf, 10, &blinking);
+	if (ret)
+		return ret;
+
+	if (!blinking)
+		led_stop_software_blink(led_cdev);
+	else
+		led_blink_set(led_cdev, &led->onMS, &led->offMS);
+	return len;
+}
+DEVICE_ATTR(blink, 0664, NULL, gpio_led_blink_store);
+
+static struct attribute *gpio_led_attributes[] = {
+	&dev_attr_blink.attr,
+	&dev_attr_onMS.attr,
+	&dev_attr_offMS.attr,
+	NULL,
+};
+
+static struct attribute_group gpio_led_attr_group = {
+	.attrs = gpio_led_attributes
+};
+
 static int create_gpio_led(const struct gpio_led *template,
 	struct gpio_led_data *led_dat, struct device *parent,
 	int (*blink_set)(unsigned, int, unsigned long *, unsigned long *))
@@ -123,7 +197,7 @@ static int create_gpio_led(const struct gpio_led *template,
 
 	/* skip leds that aren't available */
 	if (!gpio_is_valid(template->gpio)) {
-		LED_INFO("Skipping unavailable LED gpio %d (%s)\n",
+		dev_info(parent, "Skipping unavailable LED gpio %d (%s)\n",
 				template->gpio, template->name);
 		return 0;
 	}
@@ -138,6 +212,8 @@ static int create_gpio_led(const struct gpio_led *template,
 	led_dat->can_sleep = gpio_cansleep(template->gpio);
 	led_dat->active_low = template->active_low;
 	led_dat->blinking = 0;
+	led_dat->onMS = 500;
+	led_dat->offMS = 500;
 	if (blink_set) {
 		led_dat->platform_gpio_blink_set = blink_set;
 		led_dat->cdev.blink_set = gpio_blink_set;
@@ -161,6 +237,11 @@ static int create_gpio_led(const struct gpio_led *template,
 	if (ret < 0)
 		return ret;
 
+	ret = sysfs_create_group(&led_dat->cdev.dev->kobj,
+			&gpio_led_attr_group);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
 
@@ -168,6 +249,8 @@ static void delete_gpio_led(struct gpio_led_data *led)
 {
 	if (!gpio_is_valid(led->gpio))
 		return;
+	sysfs_remove_group(&led->cdev.dev->kobj,
+			&gpio_led_attr_group);
 	led_classdev_unregister(&led->cdev);
 	cancel_work_sync(&led->work);
 }
@@ -266,7 +349,8 @@ static int gpio_led_probe(struct platform_device *pdev)
 
 	pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
 	if (IS_ERR(pinctrl))
-		LED_WARN("pins are not configured from the driver\n");
+		dev_warn(&pdev->dev,
+			"pins are not configured from the driver\n");
 
 	if (pdata && pdata->num_leds) {
 		priv = devm_kzalloc(&pdev->dev,
@@ -327,4 +411,3 @@ MODULE_AUTHOR("Raphael Assenat <raph@8d.com>, Trent Piepho <tpiepho@freescale.co
 MODULE_DESCRIPTION("GPIO LED driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:leds-gpio");
-
