@@ -5873,6 +5873,10 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
+
+   char huawei_wlan_nv_file[40];
+   wcnss_get_nv_file(huawei_wlan_nv_file, sizeof(huawei_wlan_nv_file));
+
    ENTER();
 
 
@@ -5887,7 +5891,9 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
        else
           status = VOS_STATUS_E_FAILURE;
    }
-   else if (!strcmp(WLAN_NV_FILE,pFileName)) {
+
+   else if (!strcmp(huawei_wlan_nv_file,pFileName)) {
+
        if(pHddCtx->nv) {
           release_firmware(pHddCtx->nv);
           pHddCtx->nv = NULL;
@@ -5923,6 +5929,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    int status;
    VOS_STATUS retval = VOS_STATUS_SUCCESS;
    hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
+   char huawei_wlan_nv_file[40];
+   wcnss_get_nv_file(huawei_wlan_nv_file, sizeof(huawei_wlan_nv_file));
    ENTER();
 
    if( (!strcmp(WLAN_FW_FILE, pfileName)) ) {
@@ -5942,7 +5950,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
                  __func__, *pSize);
        }
    }
-   else if(!strcmp(WLAN_NV_FILE, pfileName)) {
+
+   else if(!strcmp(huawei_wlan_nv_file, pfileName)) {
 
        status = request_firmware(&pHddCtx->nv, pfileName, pHddCtx->parent_dev);
 
