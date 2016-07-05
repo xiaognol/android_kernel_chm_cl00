@@ -1111,7 +1111,7 @@ VOS_STATUS vos_nv_open(void)
     sHalNv *pnvData = NULL;
     hdd_context_t *pHddCtx = NULL;
 
-   char huawei_wlan_nv_file[40];
+   char huawei_wlan_nv_file[45];
 
 
     /*Get the global context */
