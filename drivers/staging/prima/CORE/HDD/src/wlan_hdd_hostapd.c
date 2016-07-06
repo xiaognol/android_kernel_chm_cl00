@@ -4228,7 +4228,7 @@ static int iw_softap_version(struct net_device *dev,
     return ret;
 }
 
-int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
+VOS_STATUS hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
 {
     v_U8_t i;
     int len = 0;
@@ -4265,11 +4265,7 @@ int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
         return VOS_STATUS_E_FAULT;
     }
 
-    len = snprintf(pBuf, buf_len, sta_info_header);
-    if (len >= buf_len) {
-        hddLog(LOGE, FL("Insufficient buffer:%d, %d"), buf_len, len);
-        return -E2BIG;
-    }
+    len = scnprintf(pBuf, buf_len, sta_info_header);
     pBuf += len;
     buf_len -= len;
 
@@ -4285,10 +4281,6 @@ int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
                                        pSapCtx->aStaInfo[i].macAddrSTA.bytes[3],
                                        pSapCtx->aStaInfo[i].macAddrSTA.bytes[4],
                                        pSapCtx->aStaInfo[i].macAddrSTA.bytes[5]);
-            if (len >= buf_len) {
-                hddLog(LOGE, FL("Insufficient buffer:%d, %d"), buf_len, len);
-                return -E2BIG;
-            }
             pBuf += len;
             buf_len -= len;
         }
@@ -4298,7 +4290,7 @@ int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
         }
     }
     EXIT();
-    return 0;
+    return VOS_STATUS_SUCCESS;
 }
 
 static int __iw_softap_get_sta_info(struct net_device *dev,
@@ -4307,12 +4299,12 @@ static int __iw_softap_get_sta_info(struct net_device *dev,
                                     char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    int ret;
+    VOS_STATUS status;
     ENTER();
-    ret = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
-    if (ret) {
+    status = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
+    if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!",__func__);
-       return ret;
+       return -EINVAL;
     }
     wrqu->data.length = strlen(extra);
     EXIT();
