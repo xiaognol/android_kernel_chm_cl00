@@ -2352,7 +2352,7 @@ static void wcnss_nvbin_dnld(void)
 	const struct firmware *nv = NULL;
 	struct device *dev = &penv->pdev->dev;
 
-	char huawei_wlan_nv_file[45];
+	char huawei_wlan_nv_file[40];
 
 
 	down_read(&wcnss_pm_sem);

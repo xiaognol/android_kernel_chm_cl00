@@ -5929,7 +5929,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    int status;
    VOS_STATUS retval = VOS_STATUS_SUCCESS;
    hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
-   char huawei_wlan_nv_file[45];
+   char huawei_wlan_nv_file[40];
    wcnss_get_nv_file(huawei_wlan_nv_file, sizeof(huawei_wlan_nv_file));
    ENTER();
 
