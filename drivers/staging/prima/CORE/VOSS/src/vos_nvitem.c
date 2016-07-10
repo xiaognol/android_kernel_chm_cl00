@@ -56,10 +56,6 @@
 #include <linux/firmware.h>
 #include <linux/vmalloc.h>
 
-
-#include <linux/wcnss_wlan.h>
-
-
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
 #endif
@@ -1111,9 +1107,6 @@ VOS_STATUS vos_nv_open(void)
     sHalNv *pnvData = NULL;
     hdd_context_t *pHddCtx = NULL;
 
-   char huawei_wlan_nv_file[40];
-
-
     /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -1122,9 +1115,7 @@ VOS_STATUS vos_nv_open(void)
         return (eHAL_STATUS_FAILURE);
     }
 
-    wcnss_get_nv_file(huawei_wlan_nv_file, sizeof(huawei_wlan_nv_file));
-
-    status = hdd_request_firmware(huawei_wlan_nv_file,
+    status = hdd_request_firmware(WLAN_NV_FILE,
                                   ((VosContextType*)(pVosContext))->pHDDContext,
                                   (v_VOID_t**)&pnvtmpBuf, &nvReadBufSize);
 
@@ -1132,7 +1123,7 @@ VOS_STATUS vos_nv_open(void)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                    "%s: unable to download NV file %s",
-                   __func__, huawei_wlan_nv_file);
+                   __func__, WLAN_NV_FILE);
        return VOS_STATUS_E_RESOURCES;
     }
 
