@@ -223,7 +223,7 @@ static void cluster_plug_perform(void)
 		else if (vote_up > 0)
 			vote_up--;
 
-		if (unloaded_cpus >= N_BIG_CPUS-1)
+		if (unloaded_cpus >= N_BIG_CPUS-2)
 			vote_down++;
 		else if (vote_down > 0)
 			vote_down--;
