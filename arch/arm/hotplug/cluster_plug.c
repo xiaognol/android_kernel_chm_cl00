@@ -72,7 +72,7 @@ static DEFINE_PER_CPU(struct cp_cpu_info, cp_info);
 
 static bool is_big_cpu(unsigned int cpu)
 {
-	return cpu < N_BIG_CPUS;
+	return cpu < N_BIG_CPUS && cpu > 0;
 }
 
 static bool is_little_cpu(unsigned int cpu)
@@ -103,13 +103,13 @@ static unsigned int get_delta_cpu_load_and_update(unsigned int cpu)
 		return 100 * (wall_time - idle_time) / wall_time;
 }
 
-static unsigned int get_num_loaded_big_cpus(void)
+static unsigned int get_num_loaded_little_cpus(void)
 {
 	unsigned int cpu;
 	unsigned int loaded_cpus = 0;
 
 	for_each_possible_cpu(cpu) {
-		if (is_big_cpu(cpu)) {
+		if (is_little_cpu(cpu)) {
 			unsigned int cpu_load = get_delta_cpu_load_and_update(cpu);
 			/* If a cpu is offline, assume it was loaded and forced offline */
 			if (!cpu_online(cpu) || cpu_load > load_threshold_up)
@@ -120,13 +120,13 @@ static unsigned int get_num_loaded_big_cpus(void)
 	return loaded_cpus;
 }
 
-static unsigned int get_num_unloaded_little_cpus(void)
+static unsigned int get_num_unloaded_big_cpus(void)
 {
 	unsigned int cpu;
 	unsigned int unloaded_cpus = 0;
 
 	for_each_possible_cpu(cpu) {
-		if (is_little_cpu(cpu)) {
+		if (is_big_cpu(cpu)) {
 			unsigned int cpu_load = get_delta_cpu_load_and_update(cpu);
 			/* If a little big is offline, treat it as unloaded */
 			if (!cpu_online(cpu) || cpu_load < load_threshold_down)
@@ -182,21 +182,6 @@ static void __ref enable_little_cluster(void)
 	pr_info("cluster_plug: %d little cpus enabled\n", num_up);
 }
 
-static void disable_little_cluster(void)
-{
-	unsigned int cpu;
-	unsigned int num_down = 0;
-
-	for_each_present_cpu(cpu) {
-		if (is_little_cpu(cpu) && cpu_online(cpu)) {
-			cpu_down(cpu);
-			num_down++;
-		}
-	}
-
-	pr_info("cluster_plug: %d little cpus disabled\n", num_down);
-}
-
 static void reset_cluster_state(void)
 {
 	mutex_lock(&cluster_plug_work_mutex);
@@ -207,8 +192,8 @@ static void reset_cluster_state(void)
 		enable_little_cluster();
 		disable_big_cluster();
 	} else {
-		enable_big_cluster();
-		disable_little_cluster();
+		enable_little_cluster();
+		disable_big_cluster();
 	}
 	mutex_unlock(&cluster_plug_work_mutex);
 }
@@ -221,8 +206,8 @@ static void queue_cluster_plug_work_if_needed(void)
 
 static void cluster_plug_perform(void)
 {
-	unsigned int loaded_cpus = get_num_loaded_big_cpus();
-	unsigned int unloaded_cpus = get_num_unloaded_little_cpus();
+	unsigned int loaded_cpus = get_num_loaded_little_cpus();
+	unsigned int unloaded_cpus = get_num_unloaded_big_cpus();
 	ktime_t now = ktime_get();
 
 	pr_debug("cluster-plug: little %d loaded: %u unloaded: %u votes %d / %d\n",
@@ -233,12 +218,12 @@ static void cluster_plug_perform(void)
 			ktime_to_ms(ktime_sub(now, last_action)));
 		vote_up = vote_down = 0;
 	} else {
-		if (loaded_cpus >= N_BIG_CPUS-1)
+		if (loaded_cpus >= N_LITTLE_CPUS-1)
 			vote_up++;
 		else if (vote_up > 0)
 			vote_up--;
 
-		if (unloaded_cpus >= N_LITTLE_CPUS-1)
+		if (unloaded_cpus >= N_BIG_CPUS-1)
 			vote_down++;
 		else if (vote_down > 0)
 			vote_down--;
@@ -246,14 +231,14 @@ static void cluster_plug_perform(void)
 
 	if (vote_up > vote_threshold_up) {
 		if (!little_cluster_enabled) {
-			enable_little_cluster();
+			enable_big_cluster();
 			little_cluster_enabled = true;
 		}
 		vote_up = vote_threshold_up;
 		vote_down = 0;
 	} else if (!vote_up && vote_down > vote_threshold_down) {
 		if (little_cluster_enabled) {
-			disable_little_cluster();
+			disable_big_cluster();
 			little_cluster_enabled = false;
 		}
 		vote_down = vote_threshold_down;
