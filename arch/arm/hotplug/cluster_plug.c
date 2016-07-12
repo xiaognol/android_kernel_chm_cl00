@@ -27,7 +27,7 @@
 #define CLUSTER_PLUG_MINOR_VERSION	0
 
 #define DEF_LOAD_THRESH_DOWN		20
-#define DEF_LOAD_THRESH_UP		80
+#define DEF_LOAD_THRESH_UP		50
 #define DEF_SAMPLING_MS			50
 #define DEF_VOTE_THRESHOLD		3
 
@@ -57,7 +57,7 @@ module_param(vote_threshold_up, uint, 0664);
 static ktime_t last_action;
 
 static bool active = false;
-static bool little_cluster_enabled = true;
+static bool big_cluster_enabled = true;
 static bool low_power_mode = false;
 
 static unsigned int vote_up = 0;
@@ -73,6 +73,11 @@ static DEFINE_PER_CPU(struct cp_cpu_info, cp_info);
 static bool is_big_cpu(unsigned int cpu)
 {
 	return cpu < N_BIG_CPUS && cpu > 0;
+}
+
+static bool is_big_cpu_lowpower(unsigned int cpu)
+{
+	return cpu < N_BIG_CPUS;
 }
 
 static bool is_little_cpu(unsigned int cpu)
@@ -167,6 +172,21 @@ static void disable_big_cluster(void)
 	pr_info("cluster_plug: %d big cpus disabled\n", num_down);
 }
 
+static void disable_big_cluster_lowpower(void)
+{
+	unsigned int cpu;
+	unsigned int num_down = 0;
+
+	for_each_present_cpu(cpu) {
+		if (is_big_cpu_lowpower(cpu) && cpu_online(cpu)) {
+			cpu_down(cpu);
+			num_down++;
+		}
+	}
+
+	pr_info("cluster_plug: %d big cpus disabled\n", num_down);
+}
+
 static void __ref enable_little_cluster(void)
 {
 	unsigned int cpu;
@@ -190,7 +210,7 @@ static void reset_cluster_state(void)
 		enable_little_cluster();
 	} else if (low_power_mode) {
 		enable_little_cluster();
-		disable_big_cluster();
+		disable_big_cluster_lowpower();
 	} else {
 		enable_little_cluster();
 		disable_big_cluster();
@@ -211,7 +231,7 @@ static void cluster_plug_perform(void)
 	ktime_t now = ktime_get();
 
 	pr_debug("cluster-plug: little %d loaded: %u unloaded: %u votes %d / %d\n",
-		little_cluster_enabled, loaded_cpus, unloaded_cpus, vote_up, vote_down);
+		big_cluster_enabled, loaded_cpus, unloaded_cpus, vote_up, vote_down);
 
 	if (ktime_to_ms(ktime_sub(now, last_action)) > 5*sampling_time) {
 		pr_info("cluster_plug: ignoring old ts %lld\n",
@@ -230,16 +250,16 @@ static void cluster_plug_perform(void)
 	}
 
 	if (vote_up > vote_threshold_up) {
-		if (!little_cluster_enabled) {
+		if (!big_cluster_enabled) {
 			enable_big_cluster();
-			little_cluster_enabled = true;
+			big_cluster_enabled = true;
 		}
 		vote_up = vote_threshold_up;
 		vote_down = 0;
 	} else if (!vote_up && vote_down > vote_threshold_down) {
-		if (little_cluster_enabled) {
+		if (big_cluster_enabled) {
 			disable_big_cluster();
-			little_cluster_enabled = false;
+			big_cluster_enabled = false;
 		}
 		vote_down = vote_threshold_down;
 	}
