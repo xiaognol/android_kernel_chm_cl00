@@ -29,7 +29,7 @@
 #define DEF_LOAD_THRESH_DOWN		20
 #define DEF_LOAD_THRESH_UP		50
 #define DEF_SAMPLING_MS			50
-#define DEF_VOTE_THRESHOLD		3
+#define DEF_VOTE_THRESHOLD		2
 
 #define N_BIG_CPUS			4
 #define N_LITTLE_CPUS			4
@@ -117,7 +117,7 @@ static unsigned int get_num_loaded_little_cpus(void)
 		if (is_little_cpu(cpu)) {
 			unsigned int cpu_load = get_delta_cpu_load_and_update(cpu);
 			/* If a cpu is offline, assume it was loaded and forced offline */
-			if (!cpu_online(cpu) || cpu_load > load_threshold_up)
+			if (cpu_online(cpu) && cpu_load > load_threshold_up)
 				loaded_cpus += 1;
 		}
 	}
@@ -243,7 +243,7 @@ static void cluster_plug_perform(void)
 		else if (vote_up > 0)
 			vote_up--;
 
-		if (unloaded_cpus >= N_BIG_CPUS-2)
+		if (unloaded_cpus >= N_BIG_CPUS-1)
 			vote_down++;
 		else if (vote_down > 0)
 			vote_down--;
