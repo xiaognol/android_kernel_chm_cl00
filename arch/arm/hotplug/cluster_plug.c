@@ -238,12 +238,12 @@ static void cluster_plug_perform(void)
 			ktime_to_ms(ktime_sub(now, last_action)));
 		vote_up = vote_down = 0;
 	} else {
-		if (loaded_cpus >= N_LITTLE_CPUS-1)
+		if (loaded_cpus >= N_LITTLE_CPUS-2)
 			vote_up++;
 		else if (vote_up > 0)
 			vote_up--;
 
-		if (unloaded_cpus >= N_BIG_CPUS-1)
+		if (unloaded_cpus >= N_BIG_CPUS-2)
 			vote_down++;
 		else if (vote_down > 0)
 			vote_down--;
