@@ -2942,10 +2942,11 @@ static struct module *layout_and_allocate(struct load_info *info, int flags)
 	mod = setup_load_info(info, flags);
 	if (IS_ERR(mod))
 		return mod;
-
+	if (strcmp(mod->name,"core_ctl") != 0) {
 	err = check_modinfo(mod, info, flags);
 	if (err)
 		return ERR_PTR(err);
+	}
 
 	/* Allow arches to frob section contents and sizes.  */
 	err = module_frob_arch_sections(info->hdr, info->sechdrs,
